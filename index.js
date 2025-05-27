@@ -19,7 +19,7 @@ function getUserDataPath(appName = 'trem_lite') {
 
 class Plugin {
   #ctx;
-  
+
   logger = null;
   regions = {};
   timeTable = {};
@@ -28,6 +28,8 @@ class Plugin {
   currentRotationNumber = null;
   currentLocationPwaveVal = null;
   currentLocationSwaveVal = null;
+  map = null;
+  getLocationInfoIntervalId = null;
 
   static CLASSES = {
     CURRENT_LOCATION_COUNT_DOWN: "current-location-count-down",
@@ -49,47 +51,54 @@ class Plugin {
 
   constructor(ctx) {
     this.#ctx = ctx;
-	this.configDir = path.join(getUserDataPath(), 'user', 'config.yml');
+    this.configDir = path.join(getUserDataPath(), 'user', 'config.yml');
+    this.imageUrl = path.resolve(__dirname, 'gps.png');
     this.config = {};
   }
 
   // 初始化
   async init(TREM) {
     this.readConfigYaml();
-    this.region = await this.fetchData('region');
+    try {
+      this.regions = await this.fetchData('region');
+    } catch (error) {
+      this.logger?.error("Failed to load region data:", error);
+      this.regions = {};
+    }
     this.timeTable = await this.fetchData('time');
     this.setupDOMElements();
-    setInterval(() => {
-      this.userLocation = this.getLocationInfo();
+
+    if (this.getLocationInfoIntervalId) {
+      clearInterval(this.getLocationInfoIntervalId);
+    }
+    this.getLocationInfoAndUpdateDOM();
+    this.getLocationInfoIntervalId = setInterval(() => {
+      this.getLocationInfoAndUpdateDOM();
     }, 1000);
+
     setInterval(() => {
       this.getEewData(TREM);
     }, 100);
   }
 
   readConfigYaml() {
-    const raw = fs.readFileSync(this.configDir).toString();
-    this.config = yaml.load(raw);
-  }
-  
-  readConfigYaml() {
-  try {
+    try {
       const raw = fs.readFileSync(this.configDir, 'utf8');
       this.config = yaml.load(raw);
       this.logger?.info('Config loaded:', this.config);
-	} catch (error) {
+    } catch (error) {
       this.logger?.warn('Config YAML 讀取失敗：', error.message);
       this.config = {};
-	}
+    }
   }
-  
+
   async fetchData(type) {
     try {
       const response = await fetch(
-      `https://raw.githubusercontent.com/ExpTechTW/TREM-Lite/refs/heads/main/src/resource/data/${type}.json`
+        `https://raw.githubusercontent.com/ExpTechTW/TREM-Lite/refs/heads/main/src/resource/data/${type}.json`
       );
       if (!response.ok) {
-		throw new Error("Network response was not ok");
+        throw new Error("Network response was not ok");
       }
       this.logger.info(`${type} data loaded`);
       return await response.json();
@@ -100,17 +109,6 @@ class Plugin {
 
   // 創建元素
   setupDOMElements() {
-    // const target = document.querySelector(".nav-bar-wrapper");
-    // if (
-    //   !document.querySelector(`.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN}`) &&
-    //   target &&
-    //   target.parentNode
-    // ) {
-    //   const newElement = this.createCountDownElement();
-    //   target.parentNode.insertBefore(newElement, target);
-    //   this.applyStyles();
-    //   this.cacheDOMElements();
-    // }
     const target = document.querySelector(".rts-intensity-list-wrapper");
     if (
       !document.querySelector(`.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN}`) &&
@@ -436,52 +434,142 @@ class Plugin {
     this.currentRotationNumber.classList.add(data.statusClass);
   }
 
-
-  // 取得使用者位置
-  getLocationInfo() {
-    if (!this.config) return null;
-    let config;
-    try {
-      config = this.config;
-    } catch (e) {
-      this.logger?.error("Failed to parse config from Yml:", e);
-      return null;
+  // 更新地圖上使用者位置
+  updateUserMarkerOnMap() {
+    if (!this.map || !this.map.isStyleLoaded() || !this.map.getSource('user-location-source')) {
+      return;
     }
-    if (!config || !config["location-code"]) {
-      return null;
-    }
-    const targetCode = config["location-code"];
-    if (!this.region || Object.keys(this.region).length === 0) {
-      this.logger?.warn("Region data is not loaded.");
-      return null;
-    }
-    for (const cityKey in this.region) {
-      if (this.region.hasOwnProperty(cityKey)) {
-        const city = this.region[cityKey];
-        for (const districtKey in city) {
-          if (city.hasOwnProperty(districtKey)) {
-            const data = city[districtKey];
-            if (data.code === targetCode && this.currentLocationLoc) {
-              this.currentLocationLoc.textContent = `${data.area.slice(0, 3)}${districtKey}`;
-              return {
-                lat: data.lat,
-                lon: data.lon,
-              };
-            }
+    const source = this.map.getSource('user-location-source');
+    if (this.userLocation && typeof this.userLocation.lon === 'number' && typeof this.userLocation.lat === 'number') {
+      const geojson = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [this.userLocation.lon, this.userLocation.lat]
           }
-        }
+        }]
+      };
+      source.setData(geojson);
+      if (this.map.getLayer('user-location-layer')) {
+        this.map.setLayoutProperty('user-location-layer', 'visibility', 'visible');
+      }
+    } else {
+      source.setData({ type: 'FeatureCollection', features: [] });
+      if (this.map.getLayer('user-location-layer')) {
+        this.map.setLayoutProperty('user-location-layer', 'visibility', 'none');
       }
     }
-    if (this.currentLocationLoc) {
-      this.currentLocationLoc.textContent = "";
-    }
-    return null;
   }
 
-  onLoad() {
-    const { TREM, Logger, info, utils } = this.#ctx;
+  // 取得使用者位置並更新元素
+  getLocationInfoAndUpdateDOM() {
+    let newLocation = null;
+    let displayName = "";
+    if (this.config && this.config["location-code"]) {
+      const targetCode = this.config["location-code"];
+      if (this.regions && Object.keys(this.regions).length > 0) {
+        for (const cityKey in this.regions) {
+          if (this.regions.hasOwnProperty(cityKey)) {
+            const city = this.regions[cityKey];
+            for (const districtKey in city) {
+              if (city.hasOwnProperty(districtKey)) {
+                const data = city[districtKey];
+                if (data.code === targetCode) {
+                  displayName = `${data.area.slice(0, 3)}${districtKey}`;
+                  newLocation = {
+                    lat: data.lat,
+                    lon: data.lon,
+                  };
+                  break;
+                }
+              }
+            }
+          }
+          if (newLocation) break;
+        }
+      } else {
+        this.logger?.warn("地區資料尚未載入，無法設定使用者位置。");
+      }
+    }
+    this.userLocation = newLocation;
+    if (this.currentLocationLoc) {
+      this.currentLocationLoc.textContent = displayName;
+    }
+    this.updateUserMarkerOnMap();
+  }
+
+  async onLoad() {
+    const { TREM, logger } = this.#ctx;
     this.logger = logger;
-    this.init(TREM);
+    const setupMapResources = async () => {
+      if (!this.map) {
+        this.logger?.error("setupMapResources 被呼叫，但 this.map 未被設定。");
+        return;
+      }
+      const executeMapSetup = async () => {
+        if (this.map.isStyleLoaded()) {
+          this.logger?.info("地圖樣式已載入，開始設定地圖資源。");
+          try {
+            const image = await this.map.loadImage(this.imageUrl);
+            if (image && image.data) {
+              if (!this.map.hasImage('gps-marker')) {
+                this.map.addImage('gps-marker', image.data);
+              }
+            } else {
+              this.logger?.warn(`地圖圖標 ${this.imageUrl} 載入失敗或圖片資料不存在`);
+            }
+            if (!this.map.getSource('user-location-source')) {
+              this.map.addSource('user-location-source', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] }
+              });
+            }
+            if (!this.map.getLayer('user-location-layer')) {
+              this.map.addLayer({
+                id: 'user-location-layer',
+                type: 'symbol',
+                source: 'user-location-source',
+                layout: {
+                  'icon-image': 'gps-marker',
+                  'icon-size': 0.35,
+                  'icon-allow-overlap': true,
+                  'icon-ignore-placement': true,
+                  'visibility': 'none'
+                }
+              });
+            }
+            this.getLocationInfoAndUpdateDOM();
+            this.logger?.info("地圖資源設定完成。");
+          } catch (err) {
+            this.logger?.error(`設定地圖資源時發生錯誤 (${this.imageUrl}):`, err);
+          }
+        } else {
+          this.logger?.warn("地圖樣式尚未載入，將於 500ms 後重試。");
+          setTimeout(executeMapSetup, 500);
+        }
+      };
+      await executeMapSetup();
+    };
+
+    const tryInitializePlugin = async () => {
+      if (TREM.variable.map) {
+        this.map = TREM.variable.map;
+        await setupMapResources();
+        try {
+          await this.init(TREM);
+          this.logger?.info("擴充已成功初始化。");
+        } catch (err) {
+          this.logger?.error("擴充 init 方法執行失敗:", err);
+        }
+      } else {
+        this.logger?.warn("TREM.variable.map 尚未初始化，將於1秒後重試。");
+        setTimeout(tryInitializePlugin, 1000);
+      }
+    };
+
+    tryInitializePlugin();
   }
 }
 
