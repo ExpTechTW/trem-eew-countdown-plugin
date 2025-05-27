@@ -1,21 +1,14 @@
 {
-  "timestamp": 1748335612655,
-  "version": "0.0.3",
+  "timestamp": 1748361160064,
+  "version": "0.0.4",
   "fileHashes": {
     "gps.png": "738f0e5ffea0bbe7b2ab64ab98356dde728ce167ddf971aad65c92d7d2a17d98",
-    "index.js": "52290572acc0236ef0fd6775cee383d6a510c544f18ca63239f1093c2aa02b0d",
-    "info.json": "5eeff14cb2ccc24db61218d64f5baadd9477e7f0ff425cdf8a2d8e2ce7366055",
-    "node_modules/.bin/js-yaml": "c46b44b3bd9b2331fe4f659e672d453b88bcb3e04b4a214d19f91de0b3891b3e",
-    "node_modules/.bin/js-yaml.cmd": "0eaab6ee7fd999a70b1379a03774d8308a557f34f812dab521de1bc05615dc07",
-    "node_modules/.bin/js-yaml.ps1": "d5a6132c4b32e855a2c1f239b2d69b389320cbd10f890ee5069fe5f550e52882",
-    "node_modules/.package-lock.json": "eb57379790242dbae690fa5df6f5d7863a1abc397d37c99fe230cbd9d2a0bb47",
+    "index.js": "960e84f387bc3f49578fee0d57c9af435f71277d44378c781427614b03d4fa1c",
+    "info.json": "53e27f60d31c9f3b6b1ce7e7a965d9e80af20995f3a858a1cc8e9af17b1eca6f",
     "node_modules/argparse/argparse.js": "2e73e7a3167ba840dbcf41feeafc3544a3e2b39220b5e997133c519861febf16",
     "node_modules/argparse/CHANGELOG.md": "c3f89be070b29b2db49d6ecee73e5e2a50dd32e8b68dc9a8ca1a959fc14fe451",
     "node_modules/argparse/lib/sub.js": "2bc4ef9e87c47f1a4e0cfcb3706d886e0d73edce88149e300d2364066f396ed6",
     "node_modules/argparse/lib/textwrap.js": "2550466c9a0425fa583a70e25bb93e190fe09b61f7de4861ea8ec54b7b899db0",
-    "node_modules/argparse/LICENSE": "de4d1f2d2ad5ad0cfd1657a106476b31cb5db5ef9d1ff842b237c0c81f0c8a23",
-    "node_modules/argparse/package.json": "688bace28e14392b3a1c4137eb56bc48b684dbf5cb56278ed7056cd2ece07990",
-    "node_modules/argparse/README.md": "44161d4e4baf71c745a327a5d05ee4a762c3004db5453aca221e3d0a3fa52ba6",
     "node_modules/js-yaml/bin/js-yaml.js": "6d7749dfd8019095970f4366cd09ec3abef9deaa3f870709dffecb027e58902d",
     "node_modules/js-yaml/CHANGELOG.md": "7202ffa3c3183f242e361ef06784fca460166feb7ee522d6010803dff06203fa",
     "node_modules/js-yaml/dist/js-yaml.js": "c738b0020702aa631abd8de23a902a3079d99d3060e44166955cb51f570881c4",
@@ -46,11 +39,8 @@
     "node_modules/js-yaml/lib/type/str.js": "41e56af5fad426839bfe41c9a3f489de6efec71447490124a69f8f4785c46ab9",
     "node_modules/js-yaml/lib/type/timestamp.js": "9e4f77c8d504a3a8319108343d6d6b2b6ed95ba6e96f4fe9b204208d04cfd691",
     "node_modules/js-yaml/lib/type.js": "11d7ff8e46ecc9ef8b5334aa491973ee95a5f43841afa27e14a0594cca464170",
-    "node_modules/js-yaml/LICENSE": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550",
-    "node_modules/js-yaml/package.json": "fbaf61c90088b54dec9d97434c12eb8ffe75d3acd47eacb43910489a7b78336f",
-    "node_modules/js-yaml/README.md": "b5f32b37635c46e4203fa7e031bb002ef1f434c6873a4abdac24ee9b070b3ac7",
     "README": "bf8ea0283a728a4c9d289b95310278835fc45788fa3158863f8f846227fc4394"
   },
-  "signature": "RiqdAXK8Ve83ivpPzyb5C2ngOsi7avq0o5L0mgKI4RIJJaIweUG3v8XyHPtEhXwDGinNXv4LHRG+Ptqx2fwkmH2TJ2QcBmo0odiNXJYsiuSK0IZ/punai5NLH4xC1sQLFXjnbGzwvKegXBrgqXfCozQEFTzSUeB4/lQmCcgDTVLLBp+EKVsAw06fOJ+tKzFk7GX1JXVbr2mxChaJnvINF8NxC9vQA/dIOnafSjEr/Hdj0KJN3OdYNoZpJm+ychxZNDPg5eDbHoY5vsiNhJNKUeSiGLmdiTiEAu7YI0s2o3m/jpWD0h2WVZ9t/zOTa1JYuPyzFPPUEUTv7vpeJ8ubzQ==",
+  "signature": "tRzU5KRmMisRH2Gp7xlhqvN7MpRK9uxIGxpewLoGD5ICkr5gQFIwJ8gYMVdA/XWIAxN2FziyVQ3FyFcIDamffPza5lYlEhvvwa2Fkofh25kigCF6ayid6JBzidnMLsVzM/YwCSqxCk3fkFmg3PuAS24T3vqn2LX6/aUyqeRRcB5L9rp4BC94/GUmQryyAU5flizkx5He+WTZnoVqNbAL41+3cDu4ydnVTpMplsTLXUC4NZaItTKUBwvBGrcTRUPFe3R6M2w7/Iyikmk/yqSqtVAu3J8rIAXZbZfNNWRRicCwrEte9PWkkg5g2StePYy13BvIbYZrxtnP9QEXiLac8g==",
   "keyId": "official"
 }

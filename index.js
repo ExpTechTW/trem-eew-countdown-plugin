@@ -1,19 +1,19 @@
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const yaml = require('js-yaml');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const yaml = require("js-yaml");
 
-function getUserDataPath(appName = 'trem_lite') {
+function getUserDataPath(appName = "trem_lite") {
   const home = os.homedir();
   switch (process.platform) {
-    case 'win32':
-      return path.join(home, 'AppData', 'Roaming', appName);
-    case 'darwin':
-      return path.join(home, 'Library', 'Application Support', appName);
-    case 'linux':
-      return path.join(home, '.config', appName);
+    case "win32":
+      return path.join(home, "AppData", "Roaming", appName);
+    case "darwin":
+      return path.join(home, "Library", "Application Support", appName);
+    case "linux":
+      return path.join(home, ".config", appName);
     default:
-      throw new Error('Unsupported platform: ' + process.platform);
+      throw new Error("Unsupported platform: " + process.platform);
   }
 }
 
@@ -51,8 +51,8 @@ class Plugin {
 
   constructor(ctx) {
     this.#ctx = ctx;
-    this.configDir = path.join(getUserDataPath(), 'user', 'config.yml');
-    this.imageUrl = path.resolve(__dirname, 'gps.png');
+    this.configDir = path.join(getUserDataPath(), "user", "config.yml");
+    this.imageUrl = path.resolve(__dirname, "gps.png");
     this.config = {};
   }
 
@@ -60,12 +60,12 @@ class Plugin {
   async init(TREM) {
     this.readConfigYaml();
     try {
-      this.regions = await this.fetchData('region');
+      this.regions = await this.fetchData("region");
     } catch (error) {
       this.logger?.error("Failed to load region data:", error);
       this.regions = {};
     }
-    this.timeTable = await this.fetchData('time');
+    this.timeTable = await this.fetchData("time");
     this.setupDOMElements();
 
     if (this.getLocationInfoIntervalId) {
@@ -83,11 +83,11 @@ class Plugin {
 
   readConfigYaml() {
     try {
-      const raw = fs.readFileSync(this.configDir, 'utf8');
+      const raw = fs.readFileSync(this.configDir, "utf8");
       this.config = yaml.load(raw);
-      this.logger?.info('Config loaded:', this.config);
+      this.logger?.info("Config loaded:", this.config);
     } catch (error) {
-      this.logger?.warn('Config YAML 讀取失敗：', error.message);
+      this.logger?.warn("Config YAML 讀取失敗：", error.message);
       this.config = {};
     }
   }
@@ -111,7 +111,9 @@ class Plugin {
   setupDOMElements() {
     const target = document.querySelector(".rts-intensity-list-wrapper");
     if (
-      !document.querySelector(`.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN}`) &&
+      !document.querySelector(
+        `.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN}`
+      ) &&
       target
     ) {
       const newElement = this.createCountDownElement();
@@ -120,7 +122,6 @@ class Plugin {
       this.cacheDOMElements();
     }
   }
-
 
   createCountDownElement() {
     const newElement = document.createElement("div");
@@ -175,7 +176,6 @@ class Plugin {
         display: flex;
         width: 190px;
         height: 60px;
-        margin-right: 3px;
         transition: transform 0.6s ease;
         pointer-events: none;
         border-radius: 5px;
@@ -297,26 +297,30 @@ class Plugin {
     return (
       Math.acos(
         Math.sin(latARad) * Math.sin(latBRad) +
-        Math.cos(latARad) * Math.cos(latBRad) * Math.cos(lngARad - lngBRad)
+          Math.cos(latARad) * Math.cos(latBRad) * Math.cos(lngARad - lngBRad)
       ) * 6371.008
     );
   }
 
   // 依照距離計算PS波抵達時間
-  waveTimeByDistance(depth, dist, type = 'P') {
+  waveTimeByDistance(depth, dist, type = "P") {
     if (!this.timeTable || Object.keys(this.timeTable).length === 0) return 0;
     const depthKeys = Object.keys(this.timeTable).map(Number);
     if (depthKeys.length === 0) return 0;
     const depthKey = this.findClosest(depthKeys, depth).toString();
     const tableData = this.timeTable[depthKey];
     if (!tableData || tableData.length === 0) return 0;
-    let time = 0.0, prev = null;
+    let time = 0.0,
+      prev = null;
     for (const table of tableData) {
       if (time === 0 && table.R >= dist) {
         if (prev) {
           const rDiff = table.R - prev.R;
           const tDiff = table[type] - prev[type];
-          time = rDiff === 0 ? prev[type] : prev[type] + ((dist - prev.R) / rDiff) * tDiff;
+          time =
+            rDiff === 0
+              ? prev[type]
+              : prev[type] + ((dist - prev.R) / rDiff) * tDiff;
         } else {
           time = table.R === 0 ? 0 : (dist / table.R) * table[type];
         }
@@ -328,7 +332,8 @@ class Plugin {
       if (tableData.length > 1) {
         const secondLast = tableData[tableData.length - 2];
         const last = prev;
-        const slowness = (last[type] - secondLast[type]) / (last.R - secondLast.R);
+        const slowness =
+          (last[type] - secondLast[type]) / (last.R - secondLast.R);
         if (slowness > 0) {
           time = last[type] + (dist - last.R) * slowness;
         }
@@ -340,15 +345,25 @@ class Plugin {
     return time * 1000;
   }
 
-
   // 取得地震資料
   getEewData(TREM) {
     if (!this.currentLocationPwaveVal || !this.currentLocationSwaveVal) {
       return;
     }
-    this.currentLocationPwaveVal.classList.remove(Plugin.CLASSES.ARRIVE, Plugin.CLASSES.UNKNOWN);
-    this.currentLocationSwaveVal.classList.remove(Plugin.CLASSES.ARRIVE, Plugin.CLASSES.UNKNOWN);
-    this.currentRotationNumber.classList.remove('eew-rts', 'eew-alert', 'eew-warn', 'eew-cancel');
+    this.currentLocationPwaveVal.classList.remove(
+      Plugin.CLASSES.ARRIVE,
+      Plugin.CLASSES.UNKNOWN
+    );
+    this.currentLocationSwaveVal.classList.remove(
+      Plugin.CLASSES.ARRIVE,
+      Plugin.CLASSES.UNKNOWN
+    );
+    this.currentRotationNumber.classList.remove(
+      "eew-rts",
+      "eew-alert",
+      "eew-warn",
+      "eew-cancel"
+    );
     if (!this.timeTable || Object.keys(this.timeTable).length === 0) {
       this.logger?.warn("TimeData 未初始化。");
       return;
@@ -369,8 +384,16 @@ class Plugin {
     const { lat: userLat, lon: userLon } = this.userLocation;
     const currentTime = this.getCurrentTime(TREM);
     const surfaceDistance = this.distance(eqLat, eqLon, userLat, userLon);
-    const pWaveTravelTimeMs = this.waveTimeByDistance(eqDepth, surfaceDistance, 'P');
-    const sWaveTravelTimeMs = this.waveTimeByDistance(eqDepth, surfaceDistance, 'S');
+    const pWaveTravelTimeMs = this.waveTimeByDistance(
+      eqDepth,
+      surfaceDistance,
+      "P"
+    );
+    const sWaveTravelTimeMs = this.waveTimeByDistance(
+      eqDepth,
+      surfaceDistance,
+      "S"
+    );
     const elapsedTimeMs = currentTime - originTime;
     let pWaveRemainingSeconds, sWaveRemainingSeconds;
     if (eqData.mag !== 1 && currentEewData.status !== 3) {
@@ -384,10 +407,10 @@ class Plugin {
       currentEewData.status == 3
         ? "eew-cancel"
         : currentEewData.status == 1
-          ? "eew-alert"
-          : currentEewData.author == "trem" && !currentEewData.rts
-            ? "eew-rts"
-            : "eew-warn";
+        ? "eew-alert"
+        : currentEewData.author == "trem" && !currentEewData.rts
+        ? "eew-rts"
+        : "eew-warn";
     this.renderCountDown({
       id: currentEewData.id,
       serial: currentEewData.serial,
@@ -403,11 +426,13 @@ class Plugin {
   // 取得目前時間
   getCurrentTime(TREM) {
     if (TREM.variable.replay.start_time && TREM.variable.replay.local_time) {
-      return TREM.variable.replay.start_time + (Date.now() - TREM.variable.replay.local_time);
+      return (
+        TREM.variable.replay.start_time +
+        (Date.now() - TREM.variable.replay.local_time)
+      );
     }
     return Date.now();
   }
-
 
   // 渲染內容
   renderCountDown(data) {
@@ -436,29 +461,43 @@ class Plugin {
 
   // 更新地圖上使用者位置
   updateUserMarkerOnMap() {
-    if (!this.map || !this.map.isStyleLoaded() || !this.map.getSource('user-location-source')) {
+    if (
+      !this.map ||
+      !this.map.isStyleLoaded() ||
+      !this.map.getSource("user-location-source")
+    ) {
       return;
     }
-    const source = this.map.getSource('user-location-source');
-    if (this.userLocation && typeof this.userLocation.lon === 'number' && typeof this.userLocation.lat === 'number') {
+    const source = this.map.getSource("user-location-source");
+    if (
+      this.userLocation &&
+      typeof this.userLocation.lon === "number" &&
+      typeof this.userLocation.lat === "number"
+    ) {
       const geojson = {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [this.userLocation.lon, this.userLocation.lat]
-          }
-        }]
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [this.userLocation.lon, this.userLocation.lat],
+            },
+          },
+        ],
       };
       source.setData(geojson);
-      if (this.map.getLayer('user-location-layer')) {
-        this.map.setLayoutProperty('user-location-layer', 'visibility', 'visible');
+      if (this.map.getLayer("user-location-layer")) {
+        this.map.setLayoutProperty(
+          "user-location-layer",
+          "visibility",
+          "visible"
+        );
       }
     } else {
-      source.setData({ type: 'FeatureCollection', features: [] });
-      if (this.map.getLayer('user-location-layer')) {
-        this.map.setLayoutProperty('user-location-layer', 'visibility', 'none');
+      source.setData({ type: "FeatureCollection", features: [] });
+      if (this.map.getLayer("user-location-layer")) {
+        this.map.setLayoutProperty("user-location-layer", "visibility", "none");
       }
     }
   }
@@ -514,36 +553,41 @@ class Plugin {
           try {
             const image = await this.map.loadImage(this.imageUrl);
             if (image && image.data) {
-              if (!this.map.hasImage('gps-marker')) {
-                this.map.addImage('gps-marker', image.data);
+              if (!this.map.hasImage("gps-marker")) {
+                this.map.addImage("gps-marker", image.data);
               }
             } else {
-              this.logger?.warn(`地圖圖標 ${this.imageUrl} 載入失敗或圖片資料不存在`);
+              this.logger?.warn(
+                `地圖圖標 ${this.imageUrl} 載入失敗或圖片資料不存在`
+              );
             }
-            if (!this.map.getSource('user-location-source')) {
-              this.map.addSource('user-location-source', {
-                type: 'geojson',
-                data: { type: 'FeatureCollection', features: [] }
+            if (!this.map.getSource("user-location-source")) {
+              this.map.addSource("user-location-source", {
+                type: "geojson",
+                data: { type: "FeatureCollection", features: [] },
               });
             }
-            if (!this.map.getLayer('user-location-layer')) {
+            if (!this.map.getLayer("user-location-layer")) {
               this.map.addLayer({
-                id: 'user-location-layer',
-                type: 'symbol',
-                source: 'user-location-source',
+                id: "user-location-layer",
+                type: "symbol",
+                source: "user-location-source",
                 layout: {
-                  'icon-image': 'gps-marker',
-                  'icon-size': 0.35,
-                  'icon-allow-overlap': true,
-                  'icon-ignore-placement': true,
-                  'visibility': 'none'
-                }
+                  "icon-image": "gps-marker",
+                  "icon-size": 0.35,
+                  "icon-allow-overlap": true,
+                  "icon-ignore-placement": true,
+                  visibility: "none",
+                },
               });
             }
             this.getLocationInfoAndUpdateDOM();
             this.logger?.info("地圖資源設定完成。");
           } catch (err) {
-            this.logger?.error(`設定地圖資源時發生錯誤 (${this.imageUrl}):`, err);
+            this.logger?.error(
+              `設定地圖資源時發生錯誤 (${this.imageUrl}):`,
+              err
+            );
           }
         } else {
           this.logger?.warn("地圖樣式尚未載入，將於 500ms 後重試。");

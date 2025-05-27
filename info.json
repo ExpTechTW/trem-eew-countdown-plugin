@@ -1,23 +1,15 @@
 {
   "name": "eew-countdown",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": {
     "zh_tw": "TREM-Lite EEW Count Down Plugin",
     "zh-Hant": "TREM-Lite 地震速報倒數擴充套件"
   },
-  "loader": [
-    "setting",
-    "index"
-  ],
-  "author": [
-    "cstrikeasia",
-    "whes1015"
-  ],
+  "loader": ["setting", "index"],
+  "author": ["cstrikeasia", "whes1015"],
   "dependencies": {
     "trem": ">=3.1.5"
   },
-  "resources": [
-    "AGPL-3.0"
-  ],
+  "resources": ["AGPL-3.0"],
   "link": "https://github.com/ExpTechTW/TREM-EEW-Source-Plugin"
 }
