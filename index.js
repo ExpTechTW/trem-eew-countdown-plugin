@@ -163,7 +163,7 @@ class Plugin {
         align-items: center;
         justify-content: center;
         display: none;
-		z-index: 9999;
+	    	z-index: 9999;
       }
       .${Plugin.CLASSES.CURRENT_ROTATION_NUMBER}:not(:empty) {
          display: flex;
@@ -187,8 +187,8 @@ class Plugin {
         flex-direction: column;
         flex-wrap: wrap;
         width: 100%;
-		margin-right: 3px;
-		margin-left: 3px;
+        margin-right: 3px;
+        margin-left: 3px;
         justify-content: space-around;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_LOC} {
@@ -197,20 +197,20 @@ class Plugin {
         text-align: center;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_PSWAVE} {
-			display: flex;
-			justify-content: space-around;
-			font-size: 14px;
-			font-weight: bold;
-			background-color: #383838;
-			border-radius: 5px;
-			border: 1px solid #27272778;
-			height: 25px;
-			align-items: center;
+        display: flex;
+        justify-content: space-around;
+        font-size: 14px;
+        font-weight: bold;
+        background-color: #383838;
+        border-radius: 5px;
+        border: 1px solid #27272778;
+        height: 25px;
+        align-items: center;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_BOX},
       .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_BOX} {
-			display: flex;
-			width: 71px;
+        display: flex;
+        width: 71px;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_TEXT} {
         margin-right: 3px;
@@ -251,15 +251,15 @@ class Plugin {
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL},
       .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL} {
-          border: 1px solid #ffffff4d;
-          border-radius: 5px;
-          height: 15px;
-          min-width: 20px;
-          padding: 2px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 2px;
+        border: 1px solid #ffffff4d;
+        border-radius: 5px;
+        height: 15px;
+        min-width: 20px;
+        padding: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 2px;
       }
     `;
     document.head.appendChild(style);
