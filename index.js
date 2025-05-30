@@ -31,6 +31,7 @@ class Plugin {
   map = null;
   getLocationInfoIntervalId = null;
   userCode = null;
+  syncedEewCache = {};
 
   static CLASSES = {
     CURRENT_LOCATION_COUNT_DOWN_WRAPPER: "current-location-count-down-wrapper",
@@ -162,24 +163,6 @@ class Plugin {
   applyStyles() {
     const style = document.createElement("style");
     style.textContent = `
-      .${Plugin.CLASSES.CURRENT_ROTATION_NUMBER} {
-        position: absolute;
-        top: .5rem;
-        left: 1rem;
-        font-size: 13px;
-        border: 1px solid #0000004a;
-        border-radius: 50%;
-        background: #456473;
-        color: #ffffff;
-        width: 20px;
-        height: 20px;
-        align-items: center;
-        justify-content: center;
-        display: none;
-      }
-      .${Plugin.CLASSES.CURRENT_ROTATION_NUMBER}:not(:empty) {
-         display: flex;
-      }
       .${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER} {
         height: 100%;
         width: 100%;
@@ -415,7 +398,7 @@ class Plugin {
     if (!this.currentLocationPwaveVal || !this.currentLocationSwaveVal) {
       return;
     }
-    this.removeClass(); // 確保 DOM 狀態被重置
+    this.removeClass();
 
     if (!this.timeTable || Object.keys(this.timeTable).length === 0) {
       this.logger?.warn("TimeData 未初始化。");
@@ -454,31 +437,17 @@ class Plugin {
       return;
     }
 
-    let currentRotationIndex = TREM.variable.last_rotation;
+    let showEewIntendedRotationIndex = TREM.variable.last_rotation;
+    const idsFromSyncedCache = Object.keys(this.syncedEewCache);
 
-    // 檢查 currentRotationIndex 有效性
     if (
-      currentRotationIndex == null ||
-      currentRotationIndex < 0 ||
-      currentRotationIndex >= displayableEews.length
+      typeof showEewIntendedRotationIndex !== "number" ||
+      isNaN(showEewIntendedRotationIndex)
     ) {
-      if (displayableEews.length > 0) {
-        currentRotationIndex = currentRotationIndex % displayableEews.length;
-      } else {
-        this.currentLocationPwaveVal.textContent = "";
-        this.currentLocationSwaveVal.textContent = "";
-        this.currentRotationNumber.textContent = "";
-        if (this.currentLocationCountDownBox)
-          this.currentLocationCountDownBox.style.display = "none";
-        return;
-      }
+      showEewIntendedRotationIndex = 0;
     }
 
-    // 再次檢查 currentRotationIndex，以防在取模後不符合預期
-    if (
-      currentRotationIndex < 0 ||
-      currentRotationIndex >= displayableEews.length
-    ) {
+    if (idsFromSyncedCache.length === 0) {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
@@ -487,15 +456,38 @@ class Plugin {
       return;
     }
 
-    const currentEewData = displayableEews[currentRotationIndex];
+    showEewIntendedRotationIndex =
+      ((showEewIntendedRotationIndex % idsFromSyncedCache.length) +
+        idsFromSyncedCache.length) %
+      idsFromSyncedCache.length;
+
+    const targetEewId = idsFromSyncedCache[showEewIntendedRotationIndex];
+    let currentEewData = null;
+    let actualEewIndexInDisplayableEews = -1;
+
+    for (let i = 0; i < displayableEews.length; i++) {
+      if (displayableEews[i].id === targetEewId) {
+        currentEewData = displayableEews[i];
+        actualEewIndexInDisplayableEews = i;
+        break;
+      }
+    }
+
+    if (!currentEewData) {
+      this.logger?.warn(
+        `EEW ID ${targetEewId} (from show_eew context) not found in displayableEews.`
+      );
+      this.currentLocationPwaveVal.textContent = "";
+      this.currentLocationSwaveVal.textContent = "";
+      this.currentRotationNumber.textContent = "";
+      if (this.currentLocationCountDownBox)
+        this.currentLocationCountDownBox.style.display = "none";
+      return;
+    }
+
     const eqData = currentEewData?.eq;
 
-    if (
-      !currentEewData ||
-      !eqData ||
-      !this.userLocation ||
-      currentEewData.trigger === true
-    ) {
+    if (!eqData || !this.userLocation || currentEewData.trigger === true) {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
@@ -559,7 +551,7 @@ class Plugin {
       distance: surfaceDistance,
       pWaveRemainingSeconds,
       sWaveRemainingSeconds,
-      lastRotation: currentRotationIndex,
+      lastRotation: actualEewIndexInDisplayableEews,
       statusClass: statusClass,
       I: userIntensityValueI,
       intensity: this.intensityFloatToInt(userIntensityValueI),
@@ -744,6 +736,25 @@ class Plugin {
   async onLoad() {
     const { TREM, logger } = this.#ctx;
     this.logger = logger;
+
+    TREM.variable.events.on("EewRelease", (ans) => {
+      if (ans && ans.data && ans.data.id) {
+        this.syncedEewCache[ans.data.id] = ans.data;
+        this.logger?.debug("syncedEewCache: EewRelease", ans.data.id);
+      }
+    });
+    TREM.variable.events.on("EewUpdate", (ans) => {
+      if (ans && ans.data && ans.data.id) {
+        this.syncedEewCache[ans.data.id] = ans.data;
+        this.logger?.debug("syncedEewCache: EewUpdate", ans.data.id);
+      }
+    });
+    TREM.variable.events.on("EewEnd", (ans) => {
+      if (ans && ans.data && ans.data.id) {
+        delete this.syncedEewCache[ans.data.id];
+        this.logger?.debug("syncedEewCache: EewEnd", ans.data.id);
+      }
+    });
 
     if (
       typeof window !== "undefined" &&
