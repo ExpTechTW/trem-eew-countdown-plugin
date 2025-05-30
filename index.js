@@ -39,18 +39,17 @@ class Plugin {
     CURRENT_LOCATION_INFO: "current-location-info",
     CURRENT_LOCATION_LOC: "current-location-loc",
     CURRENT_LOCATION_PSWAVE: "current-location-pswave",
-    CURRENT_LOCATION_INTENSITY_BOX: "current-location-intensity-box",
+    CURRENT_LOCATION_INTENSITY_WRAPPER: "current-location-intensity-wrapper",
     CURRENT_LOCATION_INTENSITY_TEXT: "current-location-intensity-text",
+    CURRENT_LOCATION_INTENSITY_BOX: "current-location-intensity-box",
     CURRENT_LOCATION_PWAVE_BOX: "current-location-pwave-box",
     CURRENT_LOCATION_PWAVE_TEXT: "current-location-pwave-text",
     CURRENT_LOCATION_SEC_BOX: "current-location-sec-box",
-    CURRENT_LOCATION_SEC_TEXT: "current-location-pwave-sec-text",
     CURRENT_LOCATION_PWAVE_VAL: "current-location-pwave-val",
     CURRENT_LOCATION_PWAVE_SEC_TEXT: "current-location-pwave-sec-text",
     CURRENT_LOCATION_SWAVE_BOX: "current-location-swave-box",
     CURRENT_LOCATION_SWAVE_TEXT: "current-location-swave-text",
     CURRENT_LOCATION_SWAVE_VAL: "current-location-swave-val",
-    CURRENT_LOCATION_SWAVE_SEC_TEXT: "current-location-swave-sec-text",
     ARRIVE: "arrive",
     UNKNOWN: "unknown",
   };
@@ -117,7 +116,10 @@ class Plugin {
   setupDOMElements() {
     // const target = document.querySelector(".rts-intensity-list-wrapper");
     if (
-      !document.querySelector(`.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER}`)) {
+      !document.querySelector(
+        `.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER}`
+      )
+    ) {
       const newElement = this.createCountDownElement();
       document.body.appendChild(newElement);
       this.applyStyles();
@@ -134,21 +136,20 @@ class Plugin {
 		  <div class="${Plugin.CLASSES.CURRENT_LOCATION_INFO}">
 			<div id="${Plugin.CLASSES.CURRENT_LOCATION_LOC}" class="${Plugin.CLASSES.CURRENT_LOCATION_LOC}"></div>
 			<div class="${Plugin.CLASSES.CURRENT_LOCATION_PSWAVE}">
-				<div class="current-location-intensity-box intensity-0">
-					<div class="current-location-intensity-text">震度</div>
+				<div class="${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_WRAPPER}">
+					<div class="${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT}"></div>
+					<div class="${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX}"></div>
 				</div>
 			  <div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_BOX}">
 				<div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_TEXT}"></div>
 				<div class="${Plugin.CLASSES.CURRENT_LOCATION_SEC_BOX}">
 					<div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}"></div>
-					<div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_SEC_TEXT}"></div>
 				</div>
 			  </div>
 			  <div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_BOX}">
 				<div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_TEXT}"></div>
 				<div class="${Plugin.CLASSES.CURRENT_LOCATION_SEC_BOX}">
 					<div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}"></div>
-					<div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_SEC_TEXT}"></div>
 				</div>
 			  </div>
 			</div>
@@ -203,7 +204,7 @@ class Plugin {
         border-radius: 20px;
         border: 1px solid #ffffff4f;
         position: relative;
-        margin-bottom: 1.5rem;
+        margin-bottom: 2.5rem;
         z-index: 99999;
       }
 	  .${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}:after {
@@ -232,7 +233,7 @@ class Plugin {
         font-size: 1.1rem;
         font-weight: bold;
         border-radius: 15px;
-        height: 4.5rem;
+        height: 4rem;
         align-items: center;
         background: #383838;
         border: 1px solid #ffffff4f !important;
@@ -243,21 +244,35 @@ class Plugin {
         display: flex;
         flex-direction: column;
         font-size: 1rem;
-        height: 4rem;
-        justify-content: space-evenly;
-        width: 4rem;
+        min-width: 3rem;
+        width: auto;
         align-items: center;
         border-radius: 10px;
+        height: 4rem;
+        justify-content: space-evenly;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX} {
-		    border: 1px solid #ffffff4f !important;
+        border: 1px solid #ffffff4f !important;
+        width: 35px;
+        height: 35px;
+        min-width: unset;
       }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX}:after {
-        font-size: 1.5rem !important;
+      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX}.intensity-0:after {
         content: "0" !important;
+      }
+      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_WRAPPER} {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 4.3rem;
+        justify-content: center;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT} {
         margin-right: 3px;
+        font-size: 1rem;
+      }
+      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT}:before {
+        content: "震度";
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_TEXT}:before {
         content: "P波";
@@ -281,21 +296,18 @@ class Plugin {
       .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}.${Plugin.CLASSES.UNKNOWN}:before {
         content: "?";
       }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_SEC_TEXT}:before,
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_SEC_TEXT}:before {
+      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}:not(:empty):after,
+      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}:not(:empty):after {
         content: "秒";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}:empty + .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_SEC_TEXT},
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}:empty + .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_SEC_TEXT} {
-        display: none;
+        font-size: 1.2rem;
+        margin-left: 3px;
+        margin-top: 4px;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL},
       .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL},
       .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL} {
         border-radius: 5px;
         height: 20px;
-        min-width: 20px;
-        padding: 2px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -305,9 +317,6 @@ class Plugin {
         display: flex;
         align-items: flex-end;
       }
-	  .${Plugin.CLASSES.CURRENT_LOCATION_SEC_TEXT} {
-		  height: 1.3rem;
-	  }
     `;
     document.head.appendChild(style);
   }
@@ -353,7 +362,7 @@ class Plugin {
     return (
       Math.acos(
         Math.sin(latARad) * Math.sin(latBRad) +
-        Math.cos(latARad) * Math.cos(latBRad) * Math.cos(lngARad - lngBRad)
+          Math.cos(latARad) * Math.cos(latBRad) * Math.cos(lngARad - lngBRad)
       ) * 6371.008
     );
   }
@@ -413,7 +422,8 @@ class Plugin {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
-      if (this.currentLocationCountDownBox) this.currentLocationCountDownBox.style.display = "none";
+      if (this.currentLocationCountDownBox)
+        this.currentLocationCountDownBox.style.display = "none";
       return;
     }
 
@@ -422,13 +432,14 @@ class Plugin {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
-      if (this.currentLocationCountDownBox) this.currentLocationCountDownBox.style.display = "none";
+      if (this.currentLocationCountDownBox)
+        this.currentLocationCountDownBox.style.display = "none";
       return;
     }
 
     const displayableEews = [];
     for (const eew of eewDataArray) {
-      if (!TREM.constant.SHOW_TREM_EEW && eew.author === 'trem') {
+      if (!TREM.constant.SHOW_TREM_EEW && eew.author === "trem") {
         continue;
       }
       displayableEews.push(eew);
@@ -438,48 +449,69 @@ class Plugin {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
-      if (this.currentLocationCountDownBox) this.currentLocationCountDownBox.style.display = "none";
+      if (this.currentLocationCountDownBox)
+        this.currentLocationCountDownBox.style.display = "none";
       return;
     }
 
     let currentRotationIndex = TREM.variable.last_rotation;
 
     // 檢查 currentRotationIndex 有效性
-    if (currentRotationIndex == null || currentRotationIndex < 0 || currentRotationIndex >= displayableEews.length) {
+    if (
+      currentRotationIndex == null ||
+      currentRotationIndex < 0 ||
+      currentRotationIndex >= displayableEews.length
+    ) {
       if (displayableEews.length > 0) {
         currentRotationIndex = currentRotationIndex % displayableEews.length;
       } else {
         this.currentLocationPwaveVal.textContent = "";
         this.currentLocationSwaveVal.textContent = "";
         this.currentRotationNumber.textContent = "";
-        if (this.currentLocationCountDownBox) this.currentLocationCountDownBox.style.display = "none";
+        if (this.currentLocationCountDownBox)
+          this.currentLocationCountDownBox.style.display = "none";
         return;
       }
     }
 
     // 再次檢查 currentRotationIndex，以防在取模後不符合預期
-    if (currentRotationIndex < 0 || currentRotationIndex >= displayableEews.length) {
+    if (
+      currentRotationIndex < 0 ||
+      currentRotationIndex >= displayableEews.length
+    ) {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
-      if (this.currentLocationCountDownBox) this.currentLocationCountDownBox.style.display = "none";
+      if (this.currentLocationCountDownBox)
+        this.currentLocationCountDownBox.style.display = "none";
       return;
     }
 
     const currentEewData = displayableEews[currentRotationIndex];
     const eqData = currentEewData?.eq;
 
-    if (!currentEewData || !eqData || !this.userLocation || currentEewData.trigger === true) {
+    if (
+      !currentEewData ||
+      !eqData ||
+      !this.userLocation ||
+      currentEewData.trigger === true
+    ) {
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
       this.currentRotationNumber.textContent = "";
-      if (this.currentLocationCountDownBox) this.currentLocationCountDownBox.style.display = "none";
+      if (this.currentLocationCountDownBox)
+        this.currentLocationCountDownBox.style.display = "none";
       return;
     }
 
     const eewIntensityCache = TREM.variable.cache.eewIntensityArea;
-    const intensityMapForThisEew = eewIntensityCache ? eewIntensityCache[currentEewData.id] : null;
-    const userIntensityData = intensityMapForThisEew && this.userCode ? intensityMapForThisEew[this.userCode] : null;
+    const intensityMapForThisEew = eewIntensityCache
+      ? eewIntensityCache[currentEewData.id]
+      : null;
+    const userIntensityData =
+      intensityMapForThisEew && this.userCode
+        ? intensityMapForThisEew[this.userCode]
+        : null;
     const userIntensityValueI = userIntensityData ? userIntensityData.I : 0;
 
     const { lat: eqLat, lon: eqLon, depth: eqDepth, time: originTime } = eqData;
@@ -511,10 +543,10 @@ class Plugin {
       currentEewData.status == 3
         ? "eew-cancel"
         : currentEewData.status == 1
-          ? "eew-alert"
-          : currentEewData.author == "trem" && !currentEewData.rts
-            ? "eew-rts"
-            : "eew-warn";
+        ? "eew-alert"
+        : currentEewData.author == "trem" && !currentEewData.rts
+        ? "eew-rts"
+        : "eew-warn";
 
     if (this.currentLocationCountDownBox) {
       this.currentLocationCountDownBox.style.display = "flex";
@@ -530,18 +562,29 @@ class Plugin {
       lastRotation: currentRotationIndex,
       statusClass: statusClass,
       I: userIntensityValueI,
-      intensity: this.intensityFloatToInt(userIntensityValueI)
+      intensity: this.intensityFloatToInt(userIntensityValueI),
     });
   }
 
   // 移除 Class
   removeClass() {
-    this.currentLocationPwaveVal.classList.remove(Plugin.CLASSES.ARRIVE, Plugin.CLASSES.UNKNOWN);
-    this.currentLocationSwaveVal.classList.remove(Plugin.CLASSES.ARRIVE, Plugin.CLASSES.UNKNOWN);
+    this.currentLocationPwaveVal.classList.remove(
+      Plugin.CLASSES.ARRIVE,
+      Plugin.CLASSES.UNKNOWN
+    );
+    this.currentLocationSwaveVal.classList.remove(
+      Plugin.CLASSES.ARRIVE,
+      Plugin.CLASSES.UNKNOWN
+    );
     // this.currentRotationNumber.classList.remove('eew-rts', 'eew-alert', 'eew-warn', 'eew-cancel');
-    this.currentLocationPSWave.classList.remove('eew-rts', 'eew-alert', 'eew-warn', 'eew-cancel');
+    this.currentLocationPSWave.classList.remove(
+      "eew-rts",
+      "eew-alert",
+      "eew-warn",
+      "eew-cancel"
+    );
     this.currentLocationCountDownBox.style.removeProperty("display");
-    [...this.currentLocationCountDownBox.classList].forEach(cls => {
+    [...this.currentLocationCountDownBox.classList].forEach((cls) => {
       if (cls.startsWith("intensity-")) {
         this.currentLocationCountDownBox.classList.remove(cls);
       }
@@ -584,16 +627,20 @@ class Plugin {
 
     if (this.currentLocationCountDownBox) {
       this.currentLocationCountDownBox.style.background = `var(--intensity-${data.intensity})`;
-      this.currentLocationCountDownBox.classList.add()
+      this.currentLocationCountDownBox.classList.add();
     }
-    const intensityBox = this.currentLocationCountDownBox.querySelector(".current-location-intensity-box");
+    const intensityBox = this.currentLocationCountDownBox.querySelector(
+      ".current-location-intensity-box"
+    );
     if (intensityBox) {
       for (let i = 0; i <= 9; i++) {
         intensityBox.classList.remove(`intensity-${i}`);
         this.currentLocationCountDownBox.classList.remove(`intensity-${i}`);
       }
       intensityBox.classList.add(`intensity-${data.intensity}`);
-      this.currentLocationCountDownBox.classList.add(`intensity-${data.intensity}`);
+      this.currentLocationCountDownBox.classList.add(
+        `intensity-${data.intensity}`
+      );
     }
   }
 
@@ -602,16 +649,16 @@ class Plugin {
     return float < 0
       ? 0
       : float < 4.5
-        ? Math.round(float)
-        : float < 5
-          ? 5
-          : float < 5.5
-            ? 6
-            : float < 6
-              ? 7
-              : float < 6.5
-                ? 8
-                : 9;
+      ? Math.round(float)
+      : float < 5
+      ? 5
+      : float < 5.5
+      ? 6
+      : float < 6
+      ? 7
+      : float < 6.5
+      ? 8
+      : 9;
   }
 
   // 更新地圖上使用者位置

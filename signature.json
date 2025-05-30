@@ -1,14 +1,14 @@
 {
-  "timestamp": 1748608917025,
-  "version": "0.0.6",
+  "timestamp": 1748618229790,
+  "version": "0.0.7",
   "fileHashes": {
     "gps.png": "738f0e5ffea0bbe7b2ab64ab98356dde728ce167ddf971aad65c92d7d2a17d98",
-    "index.js": "4876522a759719abf929e407516c99be3109fe08090eade39fc3d12a5ac2c894",
-    "info.json": "a54bff8fe634481fbd397e468a82eb20a6139c3d580c9b6ea191e6f65accba73",
+    "index.js": "b42bf3d08a590b73ee15b7b74c8f424fdf8000973c175ca9522493a58678fd30",
+    "info.json": "2babae3be5faa30e68a0215bc84c097913d601f873cf3e04c8af952d435e1d1d",
     "node_modules/.bin/js-yaml": "c46b44b3bd9b2331fe4f659e672d453b88bcb3e04b4a214d19f91de0b3891b3e",
     "node_modules/.bin/js-yaml.cmd": "0eaab6ee7fd999a70b1379a03774d8308a557f34f812dab521de1bc05615dc07",
     "node_modules/.bin/js-yaml.ps1": "d5a6132c4b32e855a2c1f239b2d69b389320cbd10f890ee5069fe5f550e52882",
-    "node_modules/.package-lock.json": "eb57379790242dbae690fa5df6f5d7863a1abc397d37c99fe230cbd9d2a0bb47",
+    "node_modules/.package-lock.json": "ee4359e21c539f626d62d7aed90ad5c2b7039fe4e17bd3e249c151363f368c17",
     "node_modules/argparse/argparse.js": "2e73e7a3167ba840dbcf41feeafc3544a3e2b39220b5e997133c519861febf16",
     "node_modules/argparse/CHANGELOG.md": "c3f89be070b29b2db49d6ecee73e5e2a50dd32e8b68dc9a8ca1a959fc14fe451",
     "node_modules/argparse/lib/sub.js": "2bc4ef9e87c47f1a4e0cfcb3706d886e0d73edce88149e300d2364066f396ed6",
@@ -50,6 +50,6 @@
     "node_modules/js-yaml/package.json": "fbaf61c90088b54dec9d97434c12eb8ffe75d3acd47eacb43910489a7b78336f",
     "node_modules/js-yaml/README.md": "b5f32b37635c46e4203fa7e031bb002ef1f434c6873a4abdac24ee9b070b3ac7"
   },
-  "signature": "LFwgAsbbSenB/qXVF2IaHCeKd80/DVXA2JaLj54oaNxoVKzDTPBfMRxTukRc2STFaSguDv87rOqpOil6+gB/MMS4++neI80Gc5FPRXAgdoEmrALbpGOy6EJJTuYYYed+OhVTcPEPN8PsoIz96O0nhZxVDY6R6LRqRpVlDSk++BvWh9f+OttpgVHQgBaPB4I0VCbktDNWFv7frqs9dBCEoUumOLIeUv1+IJu53dpLratAPMfPK5Z3pqR6lKomrNx5fYL6fzTayLVMKLuCRmQr25mY1QAbaRnwKhgJZzL6OSQNyzSjqrr8BSzYfV5Nyl+zoM9v/m/NX5KfO6T42zPNmg==",
+  "signature": "fUaiHMalNteZFwLOBz0UajdRg/f1DXj3Mr/deE1wg2MlJKjCUzhhP3SbbYZIDEqrCdFidWb96V0Bpk88NhbKl72ZPAv4in82De6BXqCjtaVB/F/AgY8uo0iMaQct7/3+ao1nqJvCrTzdQ344ZcvsjS+Fyx3fRjUu1l0674vJWEBLKqLPAMEEz7kVNajk5e7JsWCq/fen0DfoP85ZCGrjNUF202JTJq/YLXD+VEgkpeiqzvNWE7R4ff5M+/K4T+YH1vgWBXJyJv9LJMt7FM+kyuCmApYC4b6PZj52vGVf8q69Bb8NTW4YAEs9/vHS6Tc/ScGD6P1wrpAHKxA3CSnuww==",
   "keyId": "official"
 }
