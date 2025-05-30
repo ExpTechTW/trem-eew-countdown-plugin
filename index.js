@@ -253,7 +253,8 @@ class Plugin {
 		    border: 1px solid #ffffff4f !important;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX}:after {
-       font-size: 1.5rem;
+        font-size: 1.5rem !important;
+        content: "0" !important;
       }
       .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT} {
         margin-right: 3px;
