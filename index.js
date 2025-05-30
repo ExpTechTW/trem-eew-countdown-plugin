@@ -744,6 +744,14 @@ class Plugin {
   async onLoad() {
     const { TREM, logger } = this.#ctx;
     this.logger = logger;
+
+    if (
+      typeof window !== "undefined" &&
+      !window.location.pathname.includes("index.html")
+    ) {
+      return;
+    }
+
     const setupMapResources = async () => {
       if (!this.map) {
         this.logger?.error("setupMapResources 被呼叫，但 this.map 未被設定。");
