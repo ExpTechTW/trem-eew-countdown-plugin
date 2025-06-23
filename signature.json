@@ -1,10 +1,10 @@
 {
-  "timestamp": 1748631975594,
-  "version": "0.0.9",
+  "timestamp": 1750665460630,
+  "version": "0.0.10",
   "fileHashes": {
     "gps.png": "738f0e5ffea0bbe7b2ab64ab98356dde728ce167ddf971aad65c92d7d2a17d98",
-    "index.js": "ba4aa217e80ad84819649f56a9aa84ceda3235be586c6117c291dccc86bbc06f",
-    "info.json": "9089f134a2321436420156988800caeb9a9555229f4b3d2fcd34530181df45a3",
+    "index.js": "6eb94aefb0bc8bafc51441fb94804369b1bd236dd7a3cb1d19ed2778b9403c80",
+    "info.json": "fe0cc10ecae7d5d6f9f7333804080e6adef510d79fd4b70397e8d7f741e18575",
     "node_modules/.bin/js-yaml": "c46b44b3bd9b2331fe4f659e672d453b88bcb3e04b4a214d19f91de0b3891b3e",
     "node_modules/.bin/js-yaml.cmd": "0eaab6ee7fd999a70b1379a03774d8308a557f34f812dab521de1bc05615dc07",
     "node_modules/.bin/js-yaml.ps1": "d5a6132c4b32e855a2c1f239b2d69b389320cbd10f890ee5069fe5f550e52882",
@@ -50,6 +50,6 @@
     "node_modules/js-yaml/package.json": "fbaf61c90088b54dec9d97434c12eb8ffe75d3acd47eacb43910489a7b78336f",
     "node_modules/js-yaml/README.md": "b5f32b37635c46e4203fa7e031bb002ef1f434c6873a4abdac24ee9b070b3ac7"
   },
-  "signature": "U/wXfnDTJnJslP0k+VyWlMWCNiymvK6UNQSRM6FoZWuWq9aDE3wwdzSMUiQho+cb5ZQPKfVLBixpMlqL7BBtyOor5WsokLXJ4AxKKWRj+53hRj3SKtctzTbi3fxBxGx4itot3p2+8T+bLuv3iDi4bKaM71LUKnFZU4/YnxdMk9fKGVxWnOUyxZzmfgJLj2D9LLg63nENdeoHBRQ35KtV00NWNYA6ecXgSMjRzaIO9QHRIUn9DaVRC7YQwtdb/46xapeIXkltHY1HagYOmN+VmlRT9EgQXUG+dCyqG93aYmt8y2k/970LpHSu/WKNF7hnGWKLaf5fKSeMXJp74f5Zsg==",
+  "signature": "VMKAmoAsPImejLol+w+DDfuE67m+1CTu4hFxmY18mfrKti06QcnWACZaIvjlFuYe5mTt5PLxO6Jn45/sHvM+/fXDok2LArYYd8Upgj2WjE/fzw/DtKjclPNN5HMkrioaGRzcZ1s+4WuEUKHSiqLIs7tZldl55TH2A1ranp9jC+Ttdn2rgyBFPj48z6hBuNDJiQA6hAzZZ+9r7gxJBOM7TbY1sj1PN527io87Nl/HHDQJWsU6lFb3FgscdZoLhPtuqXr9H52jBbvTIv7QU//f/nOGVO/o3dfXPyWD5+MCPm3PpdhFXsAt7zcRAULLyzfeUOcnK8rc1vGKyRhwQ8sd+A==",
   "keyId": "official"
 }

@@ -115,7 +115,6 @@ class Plugin {
 
   // 創建元素
   setupDOMElements() {
-    // const target = document.querySelector(".rts-intensity-list-wrapper");
     if (
       !document.querySelector(
         `.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER}`
@@ -475,7 +474,7 @@ class Plugin {
 
     if (!currentEewData) {
       this.logger?.warn(
-        `EEW ID ${targetEewId} (from show_eew context) not found in displayableEews.`
+        `在 displayableEews 中找不到 EEW ID ${targetEewId} (來自 show_eew context)。`
       );
       this.currentLocationPwaveVal.textContent = "";
       this.currentLocationSwaveVal.textContent = "";
@@ -568,7 +567,6 @@ class Plugin {
       Plugin.CLASSES.ARRIVE,
       Plugin.CLASSES.UNKNOWN
     );
-    // this.currentRotationNumber.classList.remove('eew-rts', 'eew-alert', 'eew-warn', 'eew-cancel');
     this.currentLocationPSWave.classList.remove(
       "eew-rts",
       "eew-alert",
