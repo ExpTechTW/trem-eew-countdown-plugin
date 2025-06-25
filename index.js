@@ -1,21 +1,24 @@
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
 const yaml = require("js-yaml");
-
-function getUserDataPath(appName = "trem_lite") {
-  const home = os.homedir();
-  switch (process.platform) {
-    case "win32":
-      return path.join(home, "AppData", "Roaming", appName);
-    case "darwin":
-      return path.join(home, "Library", "Application Support", appName);
-    case "linux":
-      return path.join(home, ".config", appName);
-    default:
-      throw new Error("Unsupported platform: " + process.platform);
-  }
-}
+const CountdownAudio = require("./countdownAudio");
+const {
+  getUserDataPath,
+  distance,
+  waveTimeByDistance,
+  getCurrentTime,
+  intensityFloatToInt,
+  formatSec,
+  updateWaveDisplay,
+} = require("./utils");
+const { CLASSES } = require("./constants");
+const { createCountDownElement } = require("./domElements");
+const { applyStyles } = require("./styles");
+const {
+  initializeAudioSettings,
+  getAudioSettings,
+  setAudioSetting,
+} = require("./audioSettings");
 
 class Plugin {
   #ctx;
@@ -32,34 +35,29 @@ class Plugin {
   getLocationInfoIntervalId = null;
   userCode = null;
   syncedEewCache = {};
+  countdownAudio = null;
+  currentDisplayedEewId = null;
+  lastPlayedReportNumber = null;
+  supportOptions = [
+    { value: "updateAudio", text: "報數更新音效 (Report update sound effect)" },
+    { value: "countdownAudio", text: "倒數音效 (Countdown sound effect)" },
+    {
+      value: "ding",
+      text: "抵達時的叮叮叮音效 (Ding ding ding sound effect upon arrival)",
+    },
+  ];
 
-  static CLASSES = {
-    CURRENT_LOCATION_COUNT_DOWN_WRAPPER: "current-location-count-down-wrapper",
-    CURRENT_LOCATION_COUNT_DOWN_BOX: "current-location-count-down-box",
-    CURRENT_ROTATION_NUMBER: "current-rotation-number",
-    CURRENT_LOCATION_INFO: "current-location-info",
-    CURRENT_LOCATION_LOC: "current-location-loc",
-    CURRENT_LOCATION_PSWAVE: "current-location-pswave",
-    CURRENT_LOCATION_INTENSITY_WRAPPER: "current-location-intensity-wrapper",
-    CURRENT_LOCATION_INTENSITY_TEXT: "current-location-intensity-text",
-    CURRENT_LOCATION_INTENSITY_BOX: "current-location-intensity-box",
-    CURRENT_LOCATION_PWAVE_BOX: "current-location-pwave-box",
-    CURRENT_LOCATION_PWAVE_TEXT: "current-location-pwave-text",
-    CURRENT_LOCATION_SEC_BOX: "current-location-sec-box",
-    CURRENT_LOCATION_PWAVE_VAL: "current-location-pwave-val",
-    CURRENT_LOCATION_PWAVE_SEC_TEXT: "current-location-pwave-sec-text",
-    CURRENT_LOCATION_SWAVE_BOX: "current-location-swave-box",
-    CURRENT_LOCATION_SWAVE_TEXT: "current-location-swave-text",
-    CURRENT_LOCATION_SWAVE_VAL: "current-location-swave-val",
-    ARRIVE: "arrive",
-    UNKNOWN: "unknown",
-  };
+  static CLASSES = CLASSES;
 
   constructor(ctx) {
     this.#ctx = ctx;
     this.configDir = path.join(getUserDataPath(), "user", "config.yml");
     this.imageUrl = path.resolve(__dirname, "gps.png");
     this.config = {};
+    this.countdownAudio = new CountdownAudio(this.logger);
+    this.countdownAudio.setAudioSettings(getAudioSettings());
+    this.currentDisplayedEewId = null;
+    this.lastPlayedReportNumber = null;
   }
 
   // 初始化
@@ -72,7 +70,8 @@ class Plugin {
       this.regions = {};
     }
     this.timeTable = await this.fetchData("time");
-    this.setupDOMElements();
+    this.setupDOMElements(TREM);
+    this.countdownAudio.loadAudio();
 
     if (this.getLocationInfoIntervalId) {
       clearInterval(this.getLocationInfoIntervalId);
@@ -85,6 +84,110 @@ class Plugin {
     setInterval(() => {
       this.getEewData(TREM);
     }, 100);
+  }
+
+  eewCountDownOptionInit(TREM) {
+    window.addEventListener("storage", (event) => {
+      if (event.key === "eew-countdown-plugin" && event.newValue) {
+        this.initializeEEWOptions(TREM);
+      }
+    });
+
+    const settingButtons = document.querySelector(".setting-buttons");
+    const settingContent = document.querySelector(".setting-content");
+
+    if (settingContent && settingButtons) {
+      const button = document.createElement("div");
+      button.className = "button eew-countdown";
+      button.setAttribute("for", "eew-countdown-page");
+      settingButtons.appendChild(button);
+      button.textContent = "EEW Count Down";
+
+      const options = this.supportOptions
+        .map(
+          (opt) => `
+        <div>
+          <span>${opt.text}</span>
+          <label class="switch">
+            <input id="${opt.value}.eew-countdown-plugin" type="checkbox">
+            <div class="slider round"></div>
+          </label>
+        </div>
+      `
+        )
+        .join("");
+
+      const element = document.createElement("div");
+      element.classList.add("setting-options-page", "eew-countdown-page");
+      element.innerHTML = `
+        <div class="setting-page-header-title">EEW Count Down</div>
+        <div class="setting-item-wrapper">
+          <div class="setting-item-content">
+            <span class="setting-item-title">EEW Count Down</span>
+            <span class="description">開啟/關閉倒數擴充音效</span>
+            <div class="setting-option">
+              ${options}
+            </div>
+          </div>
+        </div>`;
+      settingContent.appendChild(element);
+    }
+  }
+
+  addCheckBoxEvent(TREM) {
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("slider")) {
+        const inputElement = e.target.previousElementSibling;
+        if (inputElement && inputElement.id.endsWith(".eew-countdown-plugin")) {
+          const key = inputElement.id.split(".")[0];
+          const isChecked = inputElement.checked;
+
+          setAudioSetting(key, !isChecked);
+          this.countdownAudio.setAudioSettings(getAudioSettings());
+        }
+      }
+    });
+  }
+
+  addClickEvent() {
+    const settingOptionsPage = document.querySelectorAll(
+      ".setting-options-page"
+    );
+    const settingButtons = document.querySelectorAll(
+      ".setting-buttons .button"
+    );
+
+    settingButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const targetPageId = button.getAttribute("for");
+        const targetPage = document.querySelector(`.${targetPageId}`);
+
+        settingOptionsPage.forEach((item) => {
+          item.classList.remove("active");
+        });
+        if (targetPage) {
+          targetPage.classList.add("active");
+        }
+
+        settingButtons.forEach((item) => {
+          item.classList.remove("on");
+        });
+        button.classList.add("on");
+      });
+    });
+  }
+
+  initializeEEWOptions(TREM) {
+    const audioSettings = getAudioSettings();
+
+    for (const opt of this.supportOptions) {
+      const checkbox = document.getElementById(
+        `${opt.value}.eew-countdown-plugin`
+      );
+      if (checkbox) {
+        checkbox.checked = false || audioSettings[opt.value];
+      }
+    }
   }
 
   readConfigYaml() {
@@ -114,282 +217,42 @@ class Plugin {
   }
 
   // 創建元素
-  setupDOMElements() {
+  setupDOMElements(TREM) {
     if (
-      !document.querySelector(
-        `.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER}`
-      )
+      !document.querySelector(`.${CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER}`)
     ) {
-      const newElement = this.createCountDownElement();
+      const newElement = createCountDownElement();
       document.body.appendChild(newElement);
-      this.applyStyles();
+      applyStyles();
       this.cacheDOMElements();
     }
   }
 
-  createCountDownElement() {
-    const newElement = document.createElement("div");
-    newElement.className = Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER;
-    newElement.innerHTML = `
-      <div class="${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}">
-		  <div class="${Plugin.CLASSES.CURRENT_ROTATION_NUMBER}"></div>
-		  <div class="${Plugin.CLASSES.CURRENT_LOCATION_INFO}">
-			<div id="${Plugin.CLASSES.CURRENT_LOCATION_LOC}" class="${Plugin.CLASSES.CURRENT_LOCATION_LOC}"></div>
-			<div class="${Plugin.CLASSES.CURRENT_LOCATION_PSWAVE}">
-				<div class="${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_WRAPPER}">
-					<div class="${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT}"></div>
-					<div class="${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX}"></div>
-				</div>
-			  <div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_BOX}">
-				<div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_TEXT}"></div>
-				<div class="${Plugin.CLASSES.CURRENT_LOCATION_SEC_BOX}">
-					<div class="${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}"></div>
-				</div>
-			  </div>
-			  <div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_BOX}">
-				<div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_TEXT}"></div>
-				<div class="${Plugin.CLASSES.CURRENT_LOCATION_SEC_BOX}">
-					<div class="${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}"></div>
-				</div>
-			  </div>
-			</div>
-		  </div>
-	  </div>
-    `;
-    return newElement;
-  }
-
-  applyStyles() {
-    const style = document.createElement("style");
-    style.textContent = `
-      .${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_WRAPPER} {
-        height: 100%;
-        width: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        pointer-events: none;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX} {
-        padding: 3px;
-        background-color: #505050;
-        color: white;
-        display: none;
-        width: calc(100% - 5rem);
-        max-width: 30rem;
-        height: 7rem;
-        transition: transform 0.6s ease;
-        pointer-events: none;
-        border-radius: 20px;
-        border: 1px solid #ffffff4f;
-        position: relative;
-        margin-bottom: 2.5rem;
-        z-index: 99999;
-      }
-	  .${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}:after {
-        display: none !important;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INFO} {
-        display: flex;
-        flex-direction: column;
-        flex-wrap: wrap;
-        width: 100%;
-        justify-content: space-around;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_LOC} {
-        font-size: 1.2rem;
-        font-weight: bold;
-        text-align: center;
-      }
-      .intensity-4 .${Plugin.CLASSES.CURRENT_LOCATION_LOC},
-      .intensity-5 .${Plugin.CLASSES.CURRENT_LOCATION_LOC},
-      .intensity-6 .${Plugin.CLASSES.CURRENT_LOCATION_LOC} {
-		    color: #000;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PSWAVE} {
-        display: flex;
-        justify-content: space-around;
-        font-size: 1.1rem;
-        font-weight: bold;
-        border-radius: 15px;
-        height: 4rem;
-        align-items: center;
-        background: #383838;
-        border: 1px solid #ffffff4f !important;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_BOX},
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_BOX},
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX} {
-        display: flex;
-        flex-direction: column;
-        font-size: 1rem;
-        min-width: 3rem;
-        width: auto;
-        align-items: center;
-        border-radius: 10px;
-        height: 4rem;
-        justify-content: space-evenly;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX} {
-        border: 1px solid #ffffff4f !important;
-        width: 35px;
-        height: 35px;
-        min-width: unset;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_BOX}.intensity-0:after {
-        content: "0" !important;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_WRAPPER} {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 4.3rem;
-        justify-content: center;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT} {
-        margin-right: 3px;
-        font-size: 1rem;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_INTENSITY_TEXT}:before {
-        content: "震度";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_TEXT}:before {
-        content: "P波";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_TEXT} {
-        margin-right: 5px;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_TEXT}:before {
-        content: "S波";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_LOC}:empty:before,
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}:empty:before,
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}:empty:before {
-        content: "-";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}.${Plugin.CLASSES.ARRIVE}:before,
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}.${Plugin.CLASSES.ARRIVE}:before {
-        content: "抵達";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}.${Plugin.CLASSES.UNKNOWN}:before,
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}.${Plugin.CLASSES.UNKNOWN}:before {
-        content: "?";
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}:not(:empty):after,
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}:not(:empty):after {
-        content: "秒";
-        font-size: 1.2rem;
-        margin-left: 3px;
-        margin-top: 4px;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL},
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL},
-      .${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL} {
-        border-radius: 5px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-      }
-      .${Plugin.CLASSES.CURRENT_LOCATION_SEC_BOX} {
-        display: flex;
-        align-items: flex-end;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   cacheDOMElements() {
     this.currentLocationPwaveVal = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_LOCATION_PWAVE_VAL}`
+      `.${CLASSES.CURRENT_LOCATION_PWAVE_VAL}`
     );
     this.currentLocationSwaveVal = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_LOCATION_SWAVE_VAL}`
+      `.${CLASSES.CURRENT_LOCATION_SWAVE_VAL}`
     );
     this.currentLocationLoc = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_LOCATION_LOC}`
+      `.${CLASSES.CURRENT_LOCATION_LOC}`
     );
     this.currentRotationNumber = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_ROTATION_NUMBER}`
+      `.${CLASSES.CURRENT_ROTATION_NUMBER}`
     );
     this.currentLocationCountDownBox = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}`
+      `.${CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}`
     );
     this.currentLocationPSWave = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_LOCATION_PSWAVE}`
+      `.${CLASSES.CURRENT_LOCATION_PSWAVE}`
     );
     this.currentLocationCountDownBox = document.querySelector(
-      `.${Plugin.CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}`
+      `.${CLASSES.CURRENT_LOCATION_COUNT_DOWN_BOX}`
     );
-  }
-
-  // 取最近值
-  findClosest(arr, target) {
-    return arr.reduce((prev, curr) =>
-      Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
+    this.currentReportNumber = document.querySelector(
+      `.${CLASSES.CURRENT_REPORT_NUMBER}`
     );
-  }
-
-  // 計算點與點之間的距離
-  distance(latA, lngA, latB, lngB) {
-    const toRadians = (degree) => (degree * Math.PI) / 180;
-    const latARad = toRadians(latA);
-    const lngARad = toRadians(lngA);
-    const latBRad = toRadians(latB);
-    const lngBRad = toRadians(lngB);
-    return (
-      Math.acos(
-        Math.sin(latARad) * Math.sin(latBRad) +
-          Math.cos(latARad) * Math.cos(latBRad) * Math.cos(lngARad - lngBRad)
-      ) * 6371.008
-    );
-  }
-
-  // 依照距離計算PS波抵達時間
-  waveTimeByDistance(depth, dist, type = "P") {
-    if (!this.timeTable || Object.keys(this.timeTable).length === 0) return 0;
-    const depthKeys = Object.keys(this.timeTable).map(Number);
-    if (depthKeys.length === 0) return 0;
-    const depthKey = this.findClosest(depthKeys, depth).toString();
-    const tableData = this.timeTable[depthKey];
-    if (!tableData || tableData.length === 0) return 0;
-    let time = 0.0,
-      prev = null;
-    for (const table of tableData) {
-      if (time === 0 && table.R >= dist) {
-        if (prev) {
-          const rDiff = table.R - prev.R;
-          const tDiff = table[type] - prev[type];
-          time =
-            rDiff === 0
-              ? prev[type]
-              : prev[type] + ((dist - prev.R) / rDiff) * tDiff;
-        } else {
-          time = table.R === 0 ? 0 : (dist / table.R) * table[type];
-        }
-      }
-      if (time !== 0) break;
-      prev = table;
-    }
-    if (time === 0 && prev && dist > prev.R) {
-      if (tableData.length > 1) {
-        const secondLast = tableData[tableData.length - 2];
-        const last = prev;
-        const slowness =
-          (last[type] - secondLast[type]) / (last.R - secondLast.R);
-        if (slowness > 0) {
-          time = last[type] + (dist - last.R) * slowness;
-        }
-      }
-      if (time === 0 && prev.R > 0 && prev[type] > 0) {
-        time = (dist / prev.R) * prev[type];
-      }
-    }
-    return time * 1000;
   }
 
   // 取得地震資料
@@ -406,6 +269,8 @@ class Plugin {
       this.currentRotationNumber.textContent = "";
       if (this.currentLocationCountDownBox)
         this.currentLocationCountDownBox.style.display = "none";
+      this.currentReportNumber.textContent = "";
+      this.lastPlayedReportNumber = null;
       return;
     }
 
@@ -416,6 +281,8 @@ class Plugin {
       this.currentRotationNumber.textContent = "";
       if (this.currentLocationCountDownBox)
         this.currentLocationCountDownBox.style.display = "none";
+      this.currentReportNumber.textContent = "";
+      this.lastPlayedReportNumber = null;
       return;
     }
 
@@ -433,6 +300,8 @@ class Plugin {
       this.currentRotationNumber.textContent = "";
       if (this.currentLocationCountDownBox)
         this.currentLocationCountDownBox.style.display = "none";
+      this.currentReportNumber.textContent = "";
+      this.lastPlayedReportNumber = null;
       return;
     }
 
@@ -452,6 +321,8 @@ class Plugin {
       this.currentRotationNumber.textContent = "";
       if (this.currentLocationCountDownBox)
         this.currentLocationCountDownBox.style.display = "none";
+      this.currentReportNumber.textContent = "";
+      this.lastPlayedReportNumber = null;
       return;
     }
 
@@ -481,7 +352,19 @@ class Plugin {
       this.currentRotationNumber.textContent = "";
       if (this.currentLocationCountDownBox)
         this.currentLocationCountDownBox.style.display = "none";
+      this.currentReportNumber.textContent = "";
+      this.lastPlayedReportNumber = null;
       return;
+    }
+
+    // 檢查顯示的 EEW 是否已變更
+    if (this.currentDisplayedEewId !== currentEewData.id) {
+      this.logger?.debug(
+        `EEW ID changed from ${this.currentDisplayedEewId} to ${currentEewData.id}. Resetting audio queue.`
+      );
+      this.countdownAudio.resetAudioQueueAndState();
+      this.currentDisplayedEewId = currentEewData.id;
+      this.lastPlayedReportNumber = currentEewData.serial;
     }
 
     const eqData = currentEewData?.eq;
@@ -492,6 +375,8 @@ class Plugin {
       this.currentRotationNumber.textContent = "";
       if (this.currentLocationCountDownBox)
         this.currentLocationCountDownBox.style.display = "none";
+      this.currentReportNumber.textContent = "";
+      this.lastPlayedReportNumber = null;
       return;
     }
 
@@ -507,14 +392,16 @@ class Plugin {
 
     const { lat: eqLat, lon: eqLon, depth: eqDepth, time: originTime } = eqData;
     const { lat: userLat, lon: userLon } = this.userLocation;
-    const currentTime = this.getCurrentTime(TREM);
-    const surfaceDistance = this.distance(eqLat, eqLon, userLat, userLon);
-    const pWaveTravelTimeMs = this.waveTimeByDistance(
+    const currentTime = getCurrentTime(TREM);
+    const surfaceDistance = distance(eqLat, eqLon, userLat, userLon);
+    const pWaveTravelTimeMs = waveTimeByDistance(
+      this.timeTable,
       eqDepth,
       surfaceDistance,
       "P"
     );
-    const sWaveTravelTimeMs = this.waveTimeByDistance(
+    const sWaveTravelTimeMs = waveTimeByDistance(
+      this.timeTable,
       eqDepth,
       surfaceDistance,
       "S"
@@ -553,19 +440,19 @@ class Plugin {
       lastRotation: actualEewIndexInDisplayableEews,
       statusClass: statusClass,
       I: userIntensityValueI,
-      intensity: this.intensityFloatToInt(userIntensityValueI),
+      intensity: intensityFloatToInt(userIntensityValueI),
     });
   }
 
   // 移除 Class
   removeClass() {
     this.currentLocationPwaveVal.classList.remove(
-      Plugin.CLASSES.ARRIVE,
-      Plugin.CLASSES.UNKNOWN
+      CLASSES.ARRIVE,
+      CLASSES.UNKNOWN
     );
     this.currentLocationSwaveVal.classList.remove(
-      Plugin.CLASSES.ARRIVE,
-      Plugin.CLASSES.UNKNOWN
+      CLASSES.ARRIVE,
+      CLASSES.UNKNOWN
     );
     this.currentLocationPSWave.classList.remove(
       "eew-rts",
@@ -581,39 +468,22 @@ class Plugin {
     });
   }
 
-  // 取得目前時間
-  getCurrentTime(TREM) {
-    if (TREM.variable.replay.start_time && TREM.variable.replay.local_time) {
-      return (
-        TREM.variable.replay.start_time +
-        (Date.now() - TREM.variable.replay.local_time)
-      );
-    }
-    return Date.now();
-  }
-
   // 渲染內容
   renderCountDown(data) {
-    const formatSec = (sec) => (sec === "?" ? "?" : Math.round(sec));
-    const updateWaveDisplay = (el, sec) => {
-      if (!el) return;
-      el.classList.remove(Plugin.CLASSES.ARRIVE, Plugin.CLASSES.UNKNOWN);
-      if (sec === "?") {
-        el.classList.add(Plugin.CLASSES.UNKNOWN);
-        el.textContent = "";
-      } else if (sec <= 0) {
-        el.classList.add(Plugin.CLASSES.ARRIVE);
-        el.textContent = "";
-      } else {
-        el.textContent = sec;
-      }
-    };
     const pSec = formatSec(data.pWaveRemainingSeconds);
     const sSec = formatSec(data.sWaveRemainingSeconds);
-    updateWaveDisplay(this.currentLocationPwaveVal, pSec);
-    updateWaveDisplay(this.currentLocationSwaveVal, sSec);
+    updateWaveDisplay(this.currentLocationPwaveVal, pSec, CLASSES);
+    updateWaveDisplay(this.currentLocationSwaveVal, sSec, CLASSES);
     this.currentLocationCountDownBox.style.display = data ? "flex" : "none";
     this.currentLocationPSWave.classList.add(data.statusClass);
+    this.currentRotationNumber.textContent = data.lastRotation;
+    this.currentReportNumber.textContent = data.serial;
+
+    if (data.final === 1) {
+      this.currentReportNumber.classList.add("is-final-report");
+    } else {
+      this.currentReportNumber.classList.remove("is-final-report");
+    }
 
     if (this.currentLocationCountDownBox) {
       this.currentLocationCountDownBox.style.background = `var(--intensity-${data.intensity})`;
@@ -632,23 +502,14 @@ class Plugin {
         `intensity-${data.intensity}`
       );
     }
-  }
 
-  // 取得震度
-  intensityFloatToInt(float) {
-    return float < 0
-      ? 0
-      : float < 4.5
-      ? Math.round(float)
-      : float < 5
-      ? 5
-      : float < 5.5
-      ? 6
-      : float < 6
-      ? 7
-      : float < 6.5
-      ? 8
-      : 9;
+    // 報告編號變更時播放 update.wav
+    if (data.serial && data.serial !== this.lastPlayedReportNumber) {
+      this.countdownAudio.playAudioSequence(["update"]);
+      this.lastPlayedReportNumber = data.serial;
+    }
+
+    this.countdownAudio.playCountdownAudio(sSec, data.intensity, data.id);
   }
 
   // 更新地圖上使用者位置
@@ -731,108 +592,132 @@ class Plugin {
     this.updateUserMarkerOnMap();
   }
 
+  // 測試用，外部觸發音效播報
+  testPlayCountdownAudio(sWaveSec, intensity, eewId) {
+    this.logger?.debug(
+      `手動觸發音效: sWaveSec=${sWaveSec}, intensity=${intensity}, eewId=${eewId}`
+    );
+    this.countdownAudio.playCountdownAudio(sWaveSec, intensity, eewId);
+  }
+
   async onLoad() {
     const { TREM, logger } = this.#ctx;
     this.logger = logger;
 
-    TREM.variable.events.on("EewRelease", (ans) => {
-      if (ans && ans.data && ans.data.id) {
-        this.syncedEewCache[ans.data.id] = ans.data;
-        this.logger?.debug("syncedEewCache: EewRelease", ans.data.id);
-      }
-    });
-    TREM.variable.events.on("EewUpdate", (ans) => {
-      if (ans && ans.data && ans.data.id) {
-        this.syncedEewCache[ans.data.id] = ans.data;
-        this.logger?.debug("syncedEewCache: EewUpdate", ans.data.id);
-      }
-    });
-    TREM.variable.events.on("EewEnd", (ans) => {
-      if (ans && ans.data && ans.data.id) {
-        delete this.syncedEewCache[ans.data.id];
-        this.logger?.debug("syncedEewCache: EewEnd", ans.data.id);
-      }
-    });
+    initializeAudioSettings();
+    this.countdownAudio.setAudioSettings(getAudioSettings());
 
-    if (
-      typeof window !== "undefined" &&
-      !window.location.pathname.includes("index.html")
-    ) {
-      return;
-    }
+    if (TREM.variable.events) {
+      TREM.variable.events.on("EewRelease", (ans) => {
+        if (ans && ans.data && ans.data.id) {
+          this.syncedEewCache[ans.data.id] = ans.data;
+          this.logger?.debug("syncedEewCache: EewRelease", ans.data.id);
+        }
+      });
+      TREM.variable.events.on("EewUpdate", (ans) => {
+        if (ans && ans.data && ans.data.id) {
+          this.syncedEewCache[ans.data.id] = ans.data;
+          this.logger?.debug("syncedEewCache: EewUpdate", ans.data.id);
+        }
+      });
+      TREM.variable.events.on("EewEnd", (ans) => {
+        if (ans && ans.data && ans.data.id) {
+          delete this.syncedEewCache[ans.data.id];
+          this.countdownAudio.clearEewAudioState(ans.data.id);
+          this.logger?.debug("syncedEewCache: EewEnd", ans.data.id);
+        }
+      });
 
-    const setupMapResources = async () => {
-      if (!this.map) {
-        this.logger?.error("setupMapResources 被呼叫，但 this.map 未被設定。");
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("index.html")
+      ) {
         return;
       }
-      const executeMapSetup = async () => {
-        if (this.map.isStyleLoaded()) {
-          this.logger?.info("地圖樣式已載入，開始設定地圖資源。");
-          try {
-            const image = await this.map.loadImage(this.imageUrl);
-            if (image && image.data) {
-              if (!this.map.hasImage("gps-marker")) {
-                this.map.addImage("gps-marker", image.data);
+
+      const setupMapResources = async () => {
+        if (!this.map) {
+          this.logger?.error(
+            "setupMapResources 被呼叫，但 this.map 未被設定。"
+          );
+          return;
+        }
+        const executeMapSetup = async () => {
+          if (this.map.isStyleLoaded()) {
+            this.logger?.info("地圖樣式已載入，開始設定地圖資源。");
+            try {
+              const image = await this.map.loadImage(this.imageUrl);
+              if (image && image.data) {
+                if (!this.map.hasImage("gps-marker")) {
+                  this.map.addImage("gps-marker", image.data);
+                }
+              } else {
+                this.logger?.warn(
+                  `地圖圖標 ${this.imageUrl} 載入失敗或圖片資料不存在`
+                );
               }
-            } else {
-              this.logger?.warn(
-                `地圖圖標 ${this.imageUrl} 載入失敗或圖片資料不存在`
+              if (!this.map.getSource("user-location-source")) {
+                this.map.addSource("user-location-source", {
+                  type: "geojson",
+                  data: { type: "FeatureCollection", features: [] },
+                });
+              }
+              if (!this.map.getLayer("user-location-layer")) {
+                this.map.addLayer({
+                  id: "user-location-layer",
+                  type: "symbol",
+                  source: "user-location-source",
+                  layout: {
+                    "icon-image": "gps-marker",
+                    "icon-size": 0.35,
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                    visibility: "none",
+                  },
+                });
+              }
+              this.getLocationInfoAndUpdateDOM();
+              this.logger?.info("地圖資源設定完成。");
+            } catch (err) {
+              this.logger?.error(
+                `設定地圖資源時發生錯誤 (${this.imageUrl}):`,
+                err
               );
             }
-            if (!this.map.getSource("user-location-source")) {
-              this.map.addSource("user-location-source", {
-                type: "geojson",
-                data: { type: "FeatureCollection", features: [] },
-              });
-            }
-            if (!this.map.getLayer("user-location-layer")) {
-              this.map.addLayer({
-                id: "user-location-layer",
-                type: "symbol",
-                source: "user-location-source",
-                layout: {
-                  "icon-image": "gps-marker",
-                  "icon-size": 0.35,
-                  "icon-allow-overlap": true,
-                  "icon-ignore-placement": true,
-                  visibility: "none",
-                },
-              });
-            }
-            this.getLocationInfoAndUpdateDOM();
-            this.logger?.info("地圖資源設定完成。");
+          } else {
+            this.logger?.warn("地圖樣式尚未載入，將於 500ms 後重試。");
+            setTimeout(executeMapSetup, 500);
+          }
+        };
+        await executeMapSetup();
+      };
+
+      const tryInitializePlugin = async () => {
+        if (TREM.variable.map) {
+          this.map = TREM.variable.map;
+          await setupMapResources();
+          try {
+            await this.init(TREM);
+            this.logger?.info("擴充已成功初始化。");
           } catch (err) {
-            this.logger?.error(
-              `設定地圖資源時發生錯誤 (${this.imageUrl}):`,
-              err
-            );
+            this.logger?.error("擴充 init 方法執行失敗:", err);
           }
         } else {
-          this.logger?.warn("地圖樣式尚未載入，將於 500ms 後重試。");
-          setTimeout(executeMapSetup, 500);
+          this.logger?.warn("TREM.variable.map 尚未初始化，將於1秒後重試。");
+          setTimeout(tryInitializePlugin, 1000);
         }
       };
-      await executeMapSetup();
-    };
 
-    const tryInitializePlugin = async () => {
-      if (TREM.variable.map) {
-        this.map = TREM.variable.map;
-        await setupMapResources();
-        try {
-          await this.init(TREM);
-          this.logger?.info("擴充已成功初始化。");
-        } catch (err) {
-          this.logger?.error("擴充 init 方法執行失敗:", err);
-        }
-      } else {
-        this.logger?.warn("TREM.variable.map 尚未初始化，將於1秒後重試。");
-        setTimeout(tryInitializePlugin, 1000);
-      }
-    };
+      tryInitializePlugin();
+    }
 
-    tryInitializePlugin();
+    this.eewCountDownOptionInit(TREM);
+    this.addClickEvent();
+    this.addCheckBoxEvent(TREM);
+    this.initializeEEWOptions(TREM);
+    this.logger.info("Loading EEW Count Down plugin...");
+
+    window.testPlayCountdownAudio = this.testPlayCountdownAudio.bind(this);
   }
 }
 
