@@ -412,6 +412,10 @@ class Plugin {
     if (eqData.mag !== 1 && currentEewData.status !== 3) {
       pWaveRemainingSeconds = (pWaveTravelTimeMs - elapsedTimeMs) / 1000;
       sWaveRemainingSeconds = (sWaveTravelTimeMs - elapsedTimeMs) / 1000;
+      if (currentEewData.author === "NIED") {
+        pWaveRemainingSeconds += 3;
+        sWaveRemainingSeconds += 3;
+      }
     } else {
       pWaveRemainingSeconds = "?";
       sWaveRemainingSeconds = "?";
